@@ -2,8 +2,11 @@ window.addEventListener('load', function(){
     // canvas setup
     const canvas = document.getElementById('canvas1');
     const ctx = canvas.getContext('2d');
-    canvas.width = 500;
+    canvas.width = 700;
     canvas.height = 500;
+    const winScore = 15;
+    const levelTime = 10000;
+    const gameSpeed = 1;
 
     class InputHandler
     {
@@ -20,6 +23,10 @@ window.addEventListener('load', function(){
                 else if (e.key === ' ')
                 {
                     this.game.player.shootTop();
+                }
+                else if (e.key === 'd')
+                {
+                    this.game.debug = !this.game.debug;
                 }
                 console.log(this.game.keys);
             });
@@ -104,17 +111,17 @@ window.addEventListener('load', function(){
         }
         draw(context)
         {
-            context.fillStyle = 'black';
-            context.fillRect(this.x, this.y, this.width, this.height);
-            context.drawImage(  this.image, 
-                                this.frameX * this.width,   //sprite start x
-                                this.frameY * this.height,  //sprite start y
-                                this.width,                 //sprite width
-                                this.height,                //sprite height
-                                this.x,                     //image x
-                                this.y, 
-                                this.width,                 
-                                this.height
+            if (this.game.debug) context.strokeRect(this.x, this.y, this.width, this.height);
+            context.drawImage(  
+                this.image, 
+                this.frameX * this.width,   //sprite start x
+                this.frameY * this.height,  //sprite start y
+                this.width,                 //sprite width
+                this.height,                //sprite height
+                this.x,                     //image x
+                this.y, 
+                this.width,                 
+                this.height
             );
             this.projectiles.forEach(projectile => {
                 projectile.draw(context);
@@ -140,24 +147,45 @@ window.addEventListener('load', function(){
             this.markedForDeletion = false;
             this.lives = 5;
             this.score = this.lives;
+            this.frameX = 0;
+            this.frameY = 0;
+            this.maxFrame = 37;
         }
         update()
         {
-            this.x += this.speedX;
+            this.x += this.speedX - this.game.speed;
             if (this.x + this.width < 0)
             {
                 this.markedForDeletion = true;
             }
+
+            // sprite animation
+            if (this.frameX < this.maxFrame)
+            {
+                this.frameX++;
+            }
+            else this.frameX = 0;
         }
         draw(context)
         {
-            context.fillStyle = 'red';
-            context.fillRect(this.x, this.y, this.width, this.height);
+            if (this.game.debug) context.strokeRect(this.x, this.y, this.width, this.height);
 
             //show lives
-            context.fillStyle = 'black';
             context.font = '20px Helvetica';
             context.fillText(this.lives, this.x, this.y);
+
+            //show enemy
+            context.drawImage(  
+                this.image, 
+                this.frameX * this.width,   //sprite start x
+                this.frameY * this.height,  //sprite start y
+                this.width,                 //sprite width
+                this.height,                //sprite height
+                this.x,                     //image x
+                this.y, 
+                this.width,                 
+                this.height
+            );
         }
     }
 
@@ -167,10 +195,11 @@ window.addEventListener('load', function(){
         constructor(game)
         {
             super(game);
-            this.width = 228 * 0.2;
-            this.height = 169 * 0.2;
+            this.width = 228;
+            this.height = 169;
             this.y = Math.random() * (this.game.height * 0.9 - this.height);
-            //this.lives = 5;
+            this.image = document.getElementById('angler1');
+            this.frameY = Math.floor(Math.random() * 3); //each row of sprite sheet has different look
         }
      }
 
@@ -285,7 +314,7 @@ window.addEventListener('load', function(){
 
     class Game
     {
-        constructor(width, height)
+        constructor(width, height, winScore, levelTime, gameSpeed)
         {
             this.width = width;
             this.height = height;
@@ -302,11 +331,12 @@ window.addEventListener('load', function(){
             this.ammoTimer = 0;
             this.ammoInterval = 500;
             this.score = 0;
-            this.winningScore = 10;
+            this.winningScore = winScore;
             this.gameOver = false;
-            this.timeLimit = 5000;
+            this.timeLimit = levelTime;
             this.gameTime = this.timeLimit;
-            this.speed = 1;
+            this.speed = gameSpeed;
+            this.debug = true;
 
         }
         update(deltaTime)
@@ -377,11 +407,11 @@ window.addEventListener('load', function(){
         {
             this.background.draw(context);
             this.player.draw(context);
-            this.ui.draw(context);
             this.enemies.forEach(enemy => {
                 enemy.draw(context);
             });
             this.background.layer4.draw(context);
+            this.ui.draw(context);
         }
         addEnemy()
         {
@@ -398,7 +428,7 @@ window.addEventListener('load', function(){
         }
     }
 
-    const game = new Game(canvas.width, canvas.height);
+    const game = new Game(canvas.width, canvas.height, winScore, levelTime, gameSpeed);
     let lastTime = 0;
 
     // animation loop
